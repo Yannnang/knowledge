@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280,initial-scale=1" />
+<!-- ⚠️ report-sections：本次生成实际包含的章节清单，逗号分隔，顺序 = 报告顺序。
+     裁剪章节时必须同步维护三处：① 本 meta ② <nav class="topnav"> 里的 a.navlink ③ 实际 <section class="block">
+     validate-report.js 会做三方对账，任何一处不同步直接报 FAIL。
+     合法值：exec year dest quality dispute adr supply qps finding -->
+<meta name="report-sections" content="exec,year,dest,quality,dispute,adr,supply,qps,finding" />
+<title>Supplier 999999 · 演示供应商（DEMO·虚构数据） · 2026 年 YTD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  /* ────── 设计令牌（4 个核心变量，换品牌只改这 4 个） ────── */
+  :root {
+    --brand: #E90345;
+    --brand-deep: #B70235;
+    --ink: #191B38;
+    --ink-2: #2A2D55;
+    --ink-3: #4A4F7A;
+    --paper: #F7F8FB;
+    --paper-2: #FFFFFF;
+    --line: #E5E7EE;
+    --line-2: #EDEFF6;
+    --muted: #6B7090;
+    --good: #11B981; --good-soft: #D1FAE5;
+    --bad: #E90345;  --bad-soft: #FEE2E6;
+    --warn: #F59E0B; --warn-soft: #FEF3C7;
+    --cool: #3B82F6; --cool-fill: rgba(59,130,246,.12);
+    --shadow-sm: 0 1px 2px rgba(25,27,56,.06), 0 1px 4px rgba(25,27,56,.04);
+    --shadow:    0 4px 12px rgba(25,27,56,.06), 0 8px 24px rgba(25,27,56,.04);
+    --shadow-lg: 0 12px 32px rgba(25,27,56,.10), 0 24px 48px rgba(25,27,56,.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    color: var(--ink); background: var(--paper); line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: "Poppins", "Inter", sans-serif; margin: 0; letter-spacing: -.01em; }
+  .num { font-family: "Poppins", "Inter", sans-serif; font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+
+  /* ────── 间距密度基线（统一节奏） ────── */
+  .block { padding: 32px 0 24px; border-bottom: 1px solid var(--line); }
+  .container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+  .sec-head { margin-bottom: 28px; }
+  .sec-no { font-size: 12px; color: var(--brand); font-weight: 600; letter-spacing: .14em; }
+  .sec-title { font-size: 28px; font-weight: 700; color: var(--ink); margin: 4px 0 6px; }
+  .sec-rule { width: 48px; height: 3px; background: var(--brand); margin: 8px 0 16px; }
+  .sec-sub { font-size: 15px; color: var(--muted); max-width: 800px; margin-bottom: 4px; }
+
+  /* ────── KPI 卡 ────── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .kpi {
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 18px; box-shadow: var(--shadow-sm);
+    position: relative; overflow: hidden;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .kpi::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--brand); }
+  .kpi.good::before { background: var(--good); }
+  .kpi.bad::before  { background: var(--bad); }
+  .kpi.warn::before { background: var(--warn); }
+  .kpi.cool::before { background: var(--cool); }
+  .kpi-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+  .kpi-val { font-size: 32px; font-weight: 700; color: var(--ink); margin: 6px 0 2px; letter-spacing: -.02em; }
+  .kpi-delta { font-size: 13px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+  .kpi-delta.up { background: var(--good-soft); color: #047857; }
+  .kpi-delta.down { background: var(--bad-soft); color: #B91C1C; }
+  .kpi-delta.flat { background: var(--line-2); color: var(--ink-3); }
+  .kpi-foot { font-size: 12px; color: var(--muted); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-2); }
+
+  /* ────── Panel ────── */
+  .panel {
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 20px; box-shadow: var(--shadow-sm); margin-bottom: 12px;
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
+  .panel-title { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .panel-meta { font-size: 12px; color: var(--muted); }
+  .panel-grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }
+  .panel-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .panel-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+  .chart-wrap { position: relative; height: 280px; }
+  .chart-wrap.tall { height: 340px; }
+  .chart-wrap.short { height: 220px; }
+
+  /* ────── Tab 切换 ────── */
+  .tabs { display: inline-flex; gap: 4px; }
+  .tab {
+    border: 1px solid var(--line); background: transparent; color: var(--muted);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-weight: 600; line-height: 1; transition: all .18s;
+  }
+  .tab:hover:not(.active) { border-color: var(--ink); color: var(--ink); }
+  .tab.active { background: var(--brand); color: white; border-color: var(--brand); }
+  .chart-tab { transition: opacity .2s; }
+
+  /* ────── 表格 ────── */
+  table.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.t th {
+    text-align: left; padding: 10px 12px;
+    background: var(--line-2); color: var(--ink-3);
+    font-weight: 600; font-size: 12px;
+    text-transform: uppercase; letter-spacing: .06em;
+    border-bottom: 1px solid var(--line);
+  }
+  table.t th.r, table.t td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  table.t td { padding: 10px 12px; border-bottom: 1px solid var(--line-2); color: var(--ink-2); }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t tr:hover td { background: var(--paper); }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .pill.up { background: var(--good-soft); color: #047857; }
+  .pill.down { background: var(--bad-soft); color: #B91C1C; }
+  .pill.flat { background: var(--line-2); color: var(--ink-3); }
+
+  /* ────── 4 层漏斗（居中 · 逐层向下） ────── */
+  .funnel-4 { display: flex; flex-direction: column; gap: 14px; }
+  .funnel-4-stage { display: flex; flex-direction: column; align-items: center; }
+  .funnel-4-bar {
+    /* --w 由脚本给出（占比经压缩映射后的宽度）；保底 320px 防止占比极小时文字被压成竖排 */
+    width: max(320px, calc(var(--w) * 0.92)); max-width: 100%;
+    display: flex; align-items: center; gap: 10px; white-space: nowrap;
+    padding: 10px 16px; border-radius: 8px;
+    font-family: "Poppins", sans-serif; min-height: 48px;
+  }
+  .funnel-4-bar .name { font-size: 14px; font-weight: 600; flex: 1; }
+  .funnel-4-bar .code { font-family: "Inter", monospace; font-size: 11px; opacity: .75; background: rgba(255,255,255,.15); padding: 2px 7px; border-radius: 4px; }
+  .funnel-4-bar .v { font-size: 16px; font-weight: 700; }
+  .funnel-4-bar .pct { font-size: 12px; font-weight: 600; background: rgba(255,255,255,.20); padding: 2px 8px; border-radius: 4px; }
+  .funnel-4-drop { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .funnel-4-drop.down { color: var(--bad); font-weight: 600; }
+
+  /* ────── Insight 卡 ────── */
+  .insight-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .insight {
+    background: linear-gradient(180deg, var(--paper-2) 0%, #FCFCFE 100%);
+    border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px; box-shadow: var(--shadow-sm);
+    border-left: 4px solid var(--brand);
+  }
+  .insight.good { border-left-color: var(--good); }
+  .insight.warn { border-left-color: var(--warn); }
+  .insight.bad  { border-left-color: var(--bad); }
+  .insight h4 { font-size: 14px; color: var(--ink); margin-bottom: 6px; }
+  .insight p { font-size: 13px; color: var(--ink-3); margin: 0; line-height: 1.6; }
+  .insight .big { font-size: 22px; font-weight: 700; color: var(--brand); font-family: "Poppins"; margin: 2px 0; }
+  /* 三态大数字配色：漏掉这 3 条时 good/warn/bad 卡的 big 全是品牌红，语义色失效 */
+  .insight.good .big { color: var(--good); }
+  .insight.warn .big { color: #B45309; }
+  .insight.bad  .big { color: var(--bad); }
+
+  /* ────── Callout ────── */
+  .callout {
+    background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 12px;
+    padding: 12px 16px; margin: 12px 0;
+    font-size: 13px; color: #92400E;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .callout .ic { flex-shrink: 0; font-size: 18px; line-height: 1; }
+  .callout strong { color: #78350F; }
+  .callout.cool { background: #EFF6FF; border-color: #BFDBFE; color: #1E40AF; }
+  .callout.cool strong { color: #1E3A8A; }
+
+  /* ────── Utility ────── */
+  .mt-8 { margin-top: 8px; } .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; }
+  .text-muted { color: var(--muted); } .text-good { color: var(--good); } .text-bad { color: var(--bad); }
+
+  /* ────── 顶部 sticky nav ────── */
+  .topnav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(247,248,251,.92); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topnav-inner {
+    max-width: 1280px; margin: 0 auto; padding: 12px 32px;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .brand-logo {
+    width: 28px; height: 28px; flex-shrink: 0;
+    background: var(--brand); border-radius: 6px;
+    display: grid; place-items: center;
+    color: #fff; font-family: "Poppins"; font-weight: 800; font-size: 14px;
+  }
+  .brand-name { font-family: "Poppins"; font-weight: 700; font-size: 15px; color: var(--ink); }
+  .brand-tag { color: var(--muted); font-size: 12px; margin-left: 8px; }
+  .topnav-spacer { flex: 1; }
+  .topnav a.navlink {
+    font-size: 13px; color: var(--ink-3); text-decoration: none;
+    padding: 6px 10px; border-radius: 6px; transition: all .15s;
+  }
+  .topnav a.navlink:hover { background: var(--line-2); color: var(--ink); }
+
+  /* ────── Cover ────── */
+  .cover { position: relative; overflow: hidden; background: var(--ink); color: #fff; }
+  /* cover-bg.png 为可选素材；第二层渐变兜底，缺图时封面不会变成纯色空白 */
+  .cover-bg {
+    position: absolute; inset: 0; opacity: .55;
+    background:
+      url(cover-bg.png) center/cover no-repeat,
+      radial-gradient(900px 520px at 12% 8%, rgba(233,3,69,.55) 0%, rgba(233,3,69,0) 62%),
+      radial-gradient(760px 460px at 88% 88%, rgba(59,130,246,.42) 0%, rgba(59,130,246,0) 60%),
+      linear-gradient(135deg, #191B38 0%, #2A2D55 100%);
+  }
+  .cover-overlay {
+    position: relative; max-width: 1280px; margin: 0 auto;
+    padding: 96px 64px 88px;
+    display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: center;
+  }
+  .cover-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18);
+    padding: 6px 12px; border-radius: 999px;
+    font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    color: rgba(255,255,255,.85); font-weight: 500;
+  }
+  .cover-eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+  .cover h1 { font-size: 64px; line-height: 1.05; font-weight: 800; margin: 24px 0 12px; }
+  .cover h1 .accent { color: var(--brand); }
+  .cover-sub { font-size: 18px; color: rgba(255,255,255,.78); max-width: 540px; }
+  .cover-card {
+    background: rgba(25,27,56,.65); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.10); border-radius: 16px; padding: 28px;
+  }
+  .cover-card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .cover-stat { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .cover-stat:nth-last-child(-n+2) { border-bottom: 0; }
+  .cover-stat-label { font-size: 12px; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .08em; }
+  .cover-stat-val { font-size: 32px; font-weight: 700; margin-top: 6px; color: #fff; }
+  .cover-stat-delta { font-size: 13px; margin-top: 4px; }
+  .cover-stat-delta.up { color: #6EE7B7; }
+  .cover-stat-delta.down { color: #FCA5A5; }
+  .cover-foot {
+    margin-top: 24px; padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,.10);
+    font-size: 13px; color: rgba(255,255,255,.55); line-height: 1.7;
+  }
+
+  /* ────── Footer ────── */
+  footer { background: var(--ink); color: rgba(255,255,255,.7); padding: 48px 0; margin-top: 48px; }
+  .footer-inner {
+    max-width: 1280px; margin: 0 auto; padding: 0 32px;
+    display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 32px;
+  }
+  footer h5 { color: #fff; font-size: 14px; margin: 0 0 12px; }
+  footer p, footer li { font-size: 12px; line-height: 1.8; }
+  footer ul { list-style: none; padding: 0; margin: 0; }
+  .footer-foot {
+    max-width: 1280px; margin: 24px auto 0; padding: 16px 32px 0;
+    border-top: 1px solid rgba(255,255,255,.10);
+    font-size: 12px; color: rgba(255,255,255,.5);
+  }
+
+  /* ────── 响应式 ────── */
+  @media (max-width: 980px) {
+    .kpi-grid, .panel-grid-2, .panel-grid-3, .panel-grid-4, .insight-grid { grid-template-columns: 1fr 1fr; }
+    .funnel-4-bar { width: 100%; min-width: 0; }
+    .cover-overlay { grid-template-columns: 1fr; padding: 64px 24px; }
+    .cover h1 { font-size: 40px; }
+  }
+</style>
+</head>
+<body>
+<div class="demo-banner" style="background:#B70235;color:#fff;text-align:center;padding:10px 16px;font-size:14px;font-weight:700;letter-spacing:.02em;position:relative;z-index:9999;">⚠ 演示数据（DEMO）— 本报告全部数字均为虚构，仅用于验证模板渲染链路，不代表任何真实供应商的经营情况</div>
+
+<!-- ────── Top Nav ────── -->
+<nav class="topnav">
+  <div class="topnav-inner">
+    <div class="brand-logo">D</div>
+    <div>
+      <div class="brand-name">Supplier 999999 · 演示供应商（DEMO·虚构数据）</div>
+      <div class="brand-tag">HTML Preview · Template Demo</div>
+    </div>
+    <div class="topnav-spacer"></div>
+    <a class="navlink" href="#exec">概览</a>
+    <a class="navlink" href="#year">月度</a>
+    <a class="navlink" href="#dest">目的地</a>
+    <a class="navlink" href="#quality">技术指标</a>
+    <a class="navlink" href="#dispute">争议单</a>
+    <a class="navlink" href="#adr">ADR·LOS</a>
+    <a class="navlink" href="#supply">在售酒店</a>
+    <a class="navlink" href="#qps">QPS</a>
+    <a class="navlink" href="#finding">结论</a>
+  </div>
+</nav>
+
+<!-- ────── Cover ────── -->
+<header class="cover">
+  <div class="cover-bg"></div>
+  <div class="cover-overlay">
+    <div>
+      <div class="cover-eyebrow">Supplier Performance Review · 2026</div>
+      <h1>演示供应商（DEMO·虚构数据）<br/><span class="accent">2026 年 YTD</span></h1>
+      <p class="cover-sub">
+        Supplier 999999 · 2026 年 YTD vs 2025 年同期 · create 口径 · CNY
+      </p>
+      <div class="cover-foot">
+        TTV/BKs 取取消前 create 口径 · 双确认 · 非当日取消 · 改订序列=1 · 统计周期为渠道订单创建日期
+      </div>
+    </div>
+    <div class="cover-card">
+      <div class="cover-card-row">
+        <div class="cover-stat">
+          <div class="cover-stat-label">Booking TTV</div>
+          <div class="cover-stat-val num">¥171.5M</div>
+          <div class="cover-stat-delta up">▲ +30.4% 同比</div>
+        </div>
+        <div class="cover-stat">
+          <div class="cover-stat-label">Bookings</div>
+          <div class="cover-stat-val num">49,200</div>
+          <div class="cover-stat-delta up">▲ +19.1% 同比</div>
+        </div>
+        <div class="cover-stat">
+          <div class="cover-stat-label">客单价 (TTV/BKs)</div>
+          <div class="cover-stat-val num">¥3,485</div>
+          <div class="cover-stat-delta up">▲ +9.5% 同比</div>
+        </div>
+        <div class="cover-stat">
+          <div class="cover-stat-label">累计有产酒店</div>
+          <div class="cover-stat-val num">1,450</div>
+          <div class="cover-stat-delta up">▲ +22.9% 同比</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ────── Section 01 · 核心结论 ────── -->
+<section class="block" id="exec">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-no">SECTION 01</div>
+      <h2 class="sec-title">量价齐升：2026 年 YTD TTV ¥171.5M，同比 +30.4%</h2>
+      <div class="sec-sub">TTV +30.4%、BKs +19.1%、客单价 +9.5% 三线同向增长。主要风险：下单失败率 2.31% （同比 -0.70pp）；争议率 0.67%；30 天有价率 41.5%。</div>
+      <div class="sec-rule"></div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Booking TTV</div><div class="kpi-val num">¥171.5M</div><div class="kpi-delta up">▲ +30.4%</div><div class="kpi-foot">2026 年 YTD · create 口径</div></div>
+      <div class="kpi"><div class="kpi-label">Bookings</div><div class="kpi-val num">49,200</div><div class="kpi-delta up">▲ +19.1%</div><div class="kpi-foot">2026 年 YTD · create 口径</div></div>
+      <div class="kpi"><div class="kpi-label">客单价 (TTV/BKs)</div><div class="kpi-val num">¥3,485</div><div class="kpi-delta up">▲ +9.5%</div><div class="kpi-foot">TTV / BKs 推算</div></div>
+      <div class="kpi"><div class="kpi-label">下单失败率</div><div class="kpi-val num">2.31%</div><div class="kpi-delta down">▼ -0.70pp</div><div class="kpi-foot">ORD_0110 / ORD_0030</div></div>
+    </div>
+
+    <div class="insight-grid mt-24">
+      <div class="insight good">
+        <h4>规模与价格</h4>
+        <div class="big">+30.4% / +9.5%</div>
+        <p>TTV ¥171.5M（BKs 49,200，2025 年同期 41,300），客单价 ¥3,485（¥3,183）。量价同向抬升，增量并非单纯来自单量堆积。</p>
+      </div>
+      <div class="insight good">
+        <h4>履约质量保持稳定</h4>
+        <div class="big">2.31%</div>
+        <p>同期 3.01%，同比 -0.70pp，峰值出现在 2月（3.10%）。规模变化的同时需要确认履约能力是否同步跟上。</p>
+      </div>
+      <div class="insight warn">
+        <h4>在售转化</h4>
+        <div class="big">41.5%</div>
+        <p>匹配成功 13,500 家酒店中，30 天有报价的仅 5,600 家；当月有产 750 家。瓶颈在「有价」而非「匹配」。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────── Section 02 · 月度走势（Tab 切换演示） ────── -->
+<section class="block" id="year">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-no">SECTION 02</div>
+      <h2 class="sec-title">月度走势：高点 7月（¥26.1M），低点 2月（¥12.3M）</h2>
+      <div class="sec-sub">序列 2026-01 ~ 2026-09，共 9 个月；2026-01、2026-02、2026-03 为窗口核心区间。点上方 Tab 可切到 Bookings。</div>
+      <div class="sec-rule"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">月度 Booking TTV · 2025 vs 2026</div>
+          <div class="panel-meta">失败率 / Bookings</div>
+        </div>
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="ttv" type="button">Booking TTV</button>
+          <button class="tab" data-tab="bks" type="button">Bookings</button>
+        </div>
+      </div>
+      <div class="chart-wrap tall chart-tab" data-tab-content="ttv">
+        <canvas id="c-ttv-month"></canvas>
+      </div>
+      <div class="chart-wrap tall chart-tab" data-tab-content="bks" style="display:none">
+        <canvas id="c-bks-month"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────── Section 03 · 目的地 ────── -->
+<section class="block" id="dest">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-no">SECTION 03</div>
+      <h2 class="sec-title">目的地：泰国 居首，Top10 合计 ¥149.9M</h2>
+      <div class="sec-sub">泰国 ¥32.5M 占首位；阿联酋 同比 +46.2%，是 Top10 中增速最快的市场。</div>
+      <div class="sec-rule"></div>
+    </div>
+
+    <div class="panel-grid-2">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Top10 目的地 · 2026 TTV</div><div class="panel-meta">按 TTV 降序</div></div>
+        <div class="chart-wrap tall"><canvas id="c-dest-top10"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">明细</div><div class="panel-meta">Top10 明细</div></div>
+        <table class="t">
+          <thead><tr><th>国家</th><th class="r">2026 TTV</th><th class="r">同比</th><th class="r">BKs</th></tr></thead>
+          <tbody>
+            <tr><td>泰国</td><td class="r num">3,250.0</td><td class="r"><span class="pill up">+36.6%</span></td><td class="r num">9,400</td></tr>
+            <tr><td>日本</td><td class="r num">2,860.0</td><td class="r"><span class="pill up">+21.7%</span></td><td class="r num">7,600</td></tr>
+            <tr><td>马来西亚</td><td class="r num">1,980.0</td><td class="r"><span class="pill up">+39.4%</span></td><td class="r num">5,900</td></tr>
+            <tr><td>新加坡</td><td class="r num">1,520.0</td><td class="r"><span class="pill up">+28.8%</span></td><td class="r num">4,100</td></tr>
+            <tr><td>印度尼西亚</td><td class="r num">1,310.0</td><td class="r"><span class="pill up">+39.4%</span></td><td class="r num">3,900</td></tr>
+            <tr><td>韩国</td><td class="r num">1,180.0</td><td class="r"><span class="pill up">+15.7%</span></td><td class="r num">3,300</td></tr>
+            <tr><td>越南</td><td class="r num">980.0</td><td class="r"><span class="pill up">+42.0%</span></td><td class="r num">3,100</td></tr>
+            <tr><td>阿联酋</td><td class="r num">760.0</td><td class="r"><span class="pill up">+46.2%</span></td><td class="r num">1,800</td></tr>
+            <tr><td>沙特阿拉伯</td><td class="r num">640.0</td><td class="r"><span class="pill up">新增</span></td><td class="r num">1,300</td></tr>
+            <tr><td>土耳其</td><td class="r num">510.0</td><td class="r"><span class="pill up">+34.2%</span></td><td class="r num">1,400</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel mt-16">
+      <div class="panel-head"><div class="panel-title">区域结构 · 对比同期</div><div class="panel-meta">单位万元 · 按 TTV 取 Top8</div></div>
+      <div class="chart-wrap"><canvas id="c-region"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ────── Section 04 · 技术指标 ────── -->
+<section class="block" id="quality">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-no">SECTION 04</div>
+      <h2 class="sec-title">技术指标：窗口内失败率 2.31%</h2>
+      <div class="sec-sub">失败率 2.31%，同比 -0.70pp，处于改善通道。验价准确率区间 96.2%~97.8%。</div>
+      <div class="sec-rule"></div>
+    </div>
+
+    <div class="callout cool">
+      <span class="ic">ⓘ</span>
+      <div><strong>口径限制:</strong><code>TRK_0049</code> 源头表保留窗口有限，查2025 年同期返回空时准确率<b>只能做窗口内趋势，无法同比</b>。</div>
+    </div>
+
+    <div class="panel-grid-2">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">下单失败率</div><div class="panel-meta">ORD_0110 失败单 / ORD_0030 BKs</div></div>
+        <div class="chart-wrap"><canvas id="c-failrate"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">验价准确率</div><div class="panel-meta">TRK_0049</div></div>
+        <div class="chart-wrap"><canvas id="c-accrate"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────── Section 05 · 争议单 ────── -->
+<section class="block" id="dispute">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-no">SECTION 05</div>
+      <h2 class="sec-title">争议单：窗口内 331 单，争议率 0.67%</h2>
+      <div class="sec-sub">同比 -27.3%（同期 455 单）；月均 37 单，争议率同比 -0.43pp。</div>
+      <div class="sec-rule"></div>
+    </div>
+
+    <div class="callout">
+      <span class="ic">⚠</span>
+      <div><strong>口径独立:</strong>争议单 <code>ORD_0188</code> 为争议单创建口径、赔付率 <code>ORD_0178</code> 为 checkin 离店口径，与 create 口径的 TTV/BKs <b>不是同一条时间轴</b>；此处争议率 = 争议单 / create 口径 BKs，仅作量级参考。</div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">争议单量</div><div class="kpi-val num">331</div><div class="kpi-delta down">▼ -27.3%</div><div class="kpi-foot">窗口累计</div></div>
+      <div class="kpi"><div class="kpi-label">争议率</div><div class="kpi-val num">0.67%</div><div class="kpi-delta down">▼ -0.43pp</div><div class="kpi-foot">争议单 / create 口径 BKs</div></div>
+      <div class="kpi"><div class="kpi-label">月均争议单</div><div class="kpi-val num">37</div><div class="kpi-delta flat">· 参考</div><div class="kpi-foot">窗口内月度均值</div></div>
+      <div class="kpi"><div class="kpi-label">同期争议单</div><div class="kpi-val num">455</div><div class="kpi-delta flat">· 参考</div><div class="kpi-foot">2025 年同期</div></div>
+    </div>
+
+    <div class="panel-grid-2 mt-24">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">月度争议 BKs</div><div class="panel-meta">ORD_0188 · 争议单创建口径</div></div>
+        <div class="chart-wrap"><canvas id="c-dispute-bks"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">月度争议率</div><div class="panel-meta">争议单 / create 口径 BKs · 量级参考</div></div>
+        <div class="chart-wrap"><canvas id="c-dispute-rate"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────── Section 06 · ADR/LOS/LT ────── -->
+<section class="block" id="adr">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-no">SECTION 06</div>
+      <h2 class="sec-title">ADR / LOS / Lead Time：¥744 · LOS 1.97 · Lead Time 25.1</h2>
+      <div class="sec-sub">ADR ¥744（同期 664，+12.0%）；客单价 ¥3,485 与 ADR×LOS 互证量价结构。</div>
+      <div class="sec-rule"></div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">ADR（窗内均值）</div><div class="kpi-val num">¥744</div><div class="kpi-delta up">▲ +12.0%</div><div class="kpi-foot">ORD_0053</div></div>
+      <div class="kpi"><div class="kpi-label">LOS</div><div class="kpi-val num">1.97</div><div class="kpi-delta up">▲ +7.3% </div><div class="kpi-foot">ORD_0039 / ORD_0030</div></div>
+      <div class="kpi"><div class="kpi-label">Lead Time</div><div class="kpi-val num">25.1</div><div class="kpi-delta flat">· 天</div><div class="kpi-foot">ORD_0093 </div></div>
+      <div class="kpi"><div class="kpi-label">客单价参考</div><div class="kpi-val num">¥3,485</div><div class="kpi-delta flat">· 参考</div><div class="kpi-foot">TTV / BKs 推算</div></div>
+    </div>
+
+    <div class="callout cool">
+      <span class="ic">ⓘ</span>
+      <div><strong>口径提示:</strong>LOS 由 <code>ORD_0039</code> RNs 除以 <code>ORD_0030</code> BKs 推算，非直接指标；ADR 取月度值按间夜加权，与「TTV/RNs」口径略有差异，故 ADR×LOS 与客单价存在小幅偏差。</div>
+    </div>
+
+    <div class="panel-grid-3 mt-24">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">月度 ADR</div><div class="panel-meta">元/间夜</div></div>
+        <div class="chart-wrap"><canvas id="c-adr"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">月度 LOS</div><div class="panel-meta">间夜</div></div>
+        <div class="chart-wrap"><canvas id="c-los"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">月度 Lead Time</div><div class="panel-meta">ORD_0093 · 天</div></div>
+        <div class="chart-wrap"><canvas id="c-lt"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────── Section 07 · 匹配与在售酒店（含 4 层漏斗） ────── -->
+<section class="block" id="supply">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-no">SECTION 07</div>
+      <h2 class="sec-title">匹配与在售酒店：匹配与有价均需关注</h2>
+      <div class="sec-sub">匹配成功酒店 68.2% / 30 天有价酒店 28.3%，当月有产 750</div>
+      <div class="sec-rule"></div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">匹配全部酒店</div><div class="kpi-val num">19,800</div><div class="kpi-delta flat">100%</div><div class="kpi-foot">SUP_0004 · 月末快照</div></div>
+      <div class="kpi"><div class="kpi-label">匹配成功酒店</div><div class="kpi-val num">13,500</div><div class="kpi-delta up">68.2%</div><div class="kpi-foot">SUP_0003</div></div>
+      <div class="kpi"><div class="kpi-label">30 天有价酒店</div><div class="kpi-val num">5,600</div><div class="kpi-delta down">28.3%</div><div class="kpi-foot">SUP_0009</div></div>
+      <div class="kpi"><div class="kpi-label">当月有产酒店</div><div class="kpi-val num">750</div><div class="kpi-delta down">3.8%</div><div class="kpi-foot">ORD_0246</div></div>
+    </div>
+
+    <div class="panel-grid-2 mt-24">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">匹配成功 vs 有价</div><div class="panel-meta">SUP_0003 / SUP_0009 月末快照</div></div>
+        <div class="chart-wrap"><canvas id="c-match-price"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">月度有产酒店</div><div class="panel-meta">ORD_0246 · 对比同期</div></div>
+        <div class="chart-wrap"><canvas id="c-producing"></canvas></div>
+      </div>
+    </div>
+
+    <div class="callout mt-16">
+      <span class="ic">⚠</span>
+      <div><strong>漏斗核心矛盾:</strong>链路损失集中在 <b>匹配成功 → 30 天有价</b>：匹配成功 13,500 家酒店里，30 天内有报价的只有 5,600 家（41.5%）。瓶颈不是「匹配不到」，而是「匹配到了但拿不到/保不住价格」。</div>
+    </div>
+
+    <div class="panel mt-16">
+      <div class="panel-head">
+        <div class="panel-title">4 层酒店漏斗 · 从匹配池到当月有产</div>
+        <div class="panel-meta">数据时点：2026-09 末快照</div>
+      </div>
+      <div class="funnel-4">
+        <div class="funnel-4-stage" style="--w:96.0%;">
+          <div class="funnel-4-bar" style="background: #C5CADD; color: var(--ink);">
+            <span class="name">匹配全部酒店</span>
+            <span class="code">SUP_0004</span>
+            <span class="v num">19,800</span>
+            <span class="pct">100.0%</span>
+          </div>
+          <div class="funnel-4-drop ">— 基线 —</div>
+        </div>
+        <div class="funnel-4-stage" style="--w:77.5%;">
+          <div class="funnel-4-bar" style="background: #6B7AA1; color: #fff;">
+            <span class="name">匹配成功酒店</span>
+            <span class="code">SUP_0003</span>
+            <span class="v num">13,500</span>
+            <span class="pct">68.2%</span>
+          </div>
+          <div class="funnel-4-drop down">↓ 31.8pp</div>
+        </div>
+        <div class="funnel-4-stage" style="--w:54.4%;">
+          <div class="funnel-4-bar" style="background: #E96080; color: #fff;">
+            <span class="name">30 天有价酒店</span>
+            <span class="code">SUP_0009</span>
+            <span class="v num">5,600</span>
+            <span class="pct">28.3%</span>
+          </div>
+          <div class="funnel-4-drop down">↓ 39.9pp</div>
+        </div>
+        <div class="funnel-4-stage" style="--w:40.2%;">
+          <div class="funnel-4-bar" style="background: var(--brand); color: #fff;">
+            <span class="name">当月有产酒店</span>
+            <span class="code">ORD_0246</span>
+            <span class="v num">750</span>
+            <span class="pct">3.8%</span>
+          </div>
+          <div class="funnel-4-drop down">↓ 24.5pp · 转化终点</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────── Section 08 · QPS（双轴混合图演示） ────── -->
+<section class="block" id="qps">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-no">SECTION 08</div>
+      <h2 class="sec-title">QPS 窗口内均值 464.9 req/s</h2>
+      <div class="sec-sub">QPS 区间 420.0 ~ 498.0；验价请求量峰值 1,640.0 万次/月。</div>
+      <div class="sec-rule"></div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">窗口均 QPS</div><div class="kpi-val num">464.9<span class="kpi-unit" style="font-size:14px;color:var(--muted);font-weight:400;margin-left:4px;">req/s</span></div><div class="kpi-delta flat">窗口内均值</div><div class="kpi-foot">TRK_0001</div></div>
+      <div class="kpi good"><div class="kpi-label">峰值 QPS</div><div class="kpi-val num">498.0</div><div class="kpi-delta up">▲ 7月</div><div class="kpi-foot">窗口最高点</div></div>
+      <div class="kpi bad"><div class="kpi-label">最低 QPS</div><div class="kpi-val num">420.0</div><div class="kpi-delta down">▼ 1月</div><div class="kpi-foot">窗口最低点</div></div>
+      <div class="kpi cool"><div class="kpi-label">验价请求峰值</div><div class="kpi-val num">1,640.0<span class="kpi-unit" style="font-size:14px;color:var(--muted);font-weight:400;margin-left:4px;">万次/月</span></div><div class="kpi-delta up">▲ 7月</div><div class="kpi-foot">TRK_0047</div></div>
+    </div>
+
+    <div class="panel-grid-2 mt-24">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">月度 QPS 与验价请求量</div><div class="panel-meta">左轴 QPS req/s（折线）· 右轴验价量万次（柱）</div></div>
+        <div class="chart-wrap tall"><canvas id="c-qps-vol"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">月度环比变化</div><div class="panel-meta">红涨绿跌</div></div>
+        <div class="chart-wrap tall"><canvas id="c-qps-mom"></canvas></div>
+      </div>
+    </div>
+
+    <div class="insight-grid mt-24">
+      <div class="insight good"><h4>观察 01 · QPS 水平</h4><div class="big">464.9 req/s</div><p>窗口内均值 464.9 req/s，整体处于健康区间。</p></div>
+      <div class="insight warn"><h4>观察 02 · 环比走势</h4><div class="big">2/8 月下行</div><p>窗口内有 2 个月环比为负，最大降幅 -2.9%，需结合业务量判断是否为偶发。</p></div>
+      <div class="insight good"><h4>观察 03 · 验价请求量</h4><div class="big">1,640.0万次</div><p>峰值出现在 7月，与 TTV 走势同步。</p></div>
+    </div>
+
+    <div class="callout cool mt-16">
+      <span class="ic">ⓘ</span>
+      <div><strong>红线监控:</strong>QPS &lt; 350 → 告警（未触发） · 验价量环比 &lt; -20% → 异常（未触发）。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ────── Section 09 · 关键发现 ────── -->
+<section class="block" id="finding">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-no">SECTION 09</div>
+      <h2 class="sec-title">关键发现与建议</h2>
+      <div class="sec-sub">按影响面排序：先看规模与价格，再看履约与在售转化，最后是系统对接健康度。</div>
+      <div class="sec-rule"></div>
+    </div>
+
+    <div class="insight-grid">
+      <div class="insight good"><h4>1. 基本面：量价同步扩张</h4><div class="big">+30.4%</div><p>TTV ¥171.5M、BKs 49,200、客单价 ¥3,485；累计有产酒店 1,450 家。</p></div>
+      <div class="insight good"><h4>2. 履约：下单失败率平稳</h4><div class="big">2.31%</div><p>同比 -0.70pp（窗口 2026 年 YTD）。规模与履约需同步评估。</p></div>
+      <div class="insight good"><h4>3. 目的地集中度</h4><div class="big">泰国</div><p>Top1 占 Top10 的 21.7%；Top10 合计 ¥149.9M。</p></div>
+      <div class="insight warn"><h4>4. 在售转化瓶颈在有价，不在匹配</h4><div class="big">41.5%</div><p>匹配成功率 68.2%，30 天有价率 41.5%。继续加匹配的边际收益已很低。</p></div>
+      <div class="insight good"><h4>5. 接口健康度</h4><div class="big">464.9 req/s</div><p>窗口均值；处于健康区间。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ────── Footer ────── -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <h5>口径与数据契约</h5>
+      <p>TTV 与 BKs 取 <b>create 取消前口径</b>（<code>ORD_0017</code>/<code>ORD_0030</code>，非下单/checkout 口径），双确认、非当日取消、改订序列=1，统计周期为渠道订单创建日期，币种 <b>CNY</b>。</p>
+    </div>
+    <div>
+      <h5>指标模块</h5>
+      <ul>
+<li>TTV / BKs / 有产 · <code>ORD_0017 / 0030 / 0246</code></li><li>失败单 · <code>ORD_0110</code> · 准确率 · <code>TRK_0049</code></li><li>争议单 / 赔付率 · <code>ORD_0188 / 0178</code></li><li>ADR / LOS / LT · <code>ORD_0053 / 0039 / 0093</code></li><li>QPS / 验价量 · <code>TRK_0001 / 0047</code></li><li>匹配 / 有价 · <code>SUP_0003 / 0004 / 0009</code></li>
+      </ul>
+    </div>
+    <div>
+      <h5>数据获取</h5>
+      <ul>
+<li>取数通道: <code>data-mcp · analyse_query</code></li><li>过滤自检: <code>sql 含 supplier_id IN ('999999')</code></li><li>报告生成: <code>supplier-report-彭于晏版</code></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-foot">
+    Supplier 999999 · 演示供应商（DEMO·虚构数据） · 2026 年 YTD · HTML 预览版 · Generated 2026-10-21
+  </div>
+</footer>
+
+<!-- ────── Charts ────── -->
+<script>
+Chart.defaults.font.family = "'Inter', 'Microsoft YaHei', sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#4A4F7A';
+Chart.defaults.borderColor = '#E5E7EE';
+
+const gridStyle = { color: '#EDEFF6', drawBorder: false };
+const tooltipStyle = {
+  backgroundColor: '#191B38', titleColor: '#fff', bodyColor: '#fff',
+  padding: 10, cornerRadius: 6,
+  titleFont: { weight: '600', size: 13 }, bodyFont: { size: 12 },
+  displayColors: true, boxPadding: 4
+};
+
+/* ────── 数据契约（占位数据，替换为真实月度数据） ────── */
+const MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月'];
+const ttv2026 = [1386.0, 1232.0, 1518.0, 1717.0, 1960.0, 2268.0, 2608.5, 2376.0, 2082.5];
+const ttv2025 = [1080.0, 957.0, 1170.0, 1333.0, 1504.0, 1716.0, 1972.0, 1815.0, 1600.0];
+const bks2026 = [4200, 3850, 4600, 5050, 5600, 6300, 7050, 6600, 5950];
+const bks2025 = [3600, 3300, 3900, 4300, 4700, 5200, 5800, 5500, 5000];
+const fail2026 = [2.8, 3.1, 2.6, 2.4, 2.2, 2.0, 1.9, 2.1, 2.3];
+const fail2025 = [3.5, 3.8, 3.3, 3.1, 2.9, 2.8, 2.6, 2.7, 3.0];
+const acc2026 = [96.2, 96.8, 97.1, 97.4, 97.0, 96.6, 97.2, 97.5, 97.8];
+const dBks2026 = [42, 38, 45, 40, 36, 33, 30, 32, 35];
+const dBks2025 = [55, 52, 58, 54, 50, 47, 44, 46, 49];
+const dRate2026 = [1.0, 0.99, 0.98, 0.79, 0.64, 0.52, 0.43, 0.48, 0.59];
+const dRate2025 = [1.53, 1.58, 1.49, 1.26, 1.06, 0.9, 0.76, 0.84, 0.98];
+const adr2026 = [680, 660, 700, 720, 750, 790, 830, 810, 760];
+const adr2025 = [610, 600, 630, 650, 670, 700, 730, 710, 680];
+const los2026 = [1.8, 1.75, 1.85, 1.9, 2.0, 2.1, 2.2, 2.15, 2.0];
+const los2025 = [1.7, 1.7, 1.75, 1.8, 1.85, 1.9, 2.0, 1.95, 1.9];
+const lt2026 = [28.0, 30.0, 27.0, 25.0, 24.0, 22.0, 21.0, 23.0, 26.0];
+const lt2025 = [32.0, 33.0, 31.0, 30.0, 29.0, 28.0, 26.0, 27.0, 29.0];
+const match2026 = [12100, 12300, 12500, 12600, 12800, 13000, 13200, 13300, 13500];
+const priced2026 = [4300, 4400, 4600, 4700, 4900, 5100, 5300, 5400, 5600];
+const producing2026 = [620, 590, 650, 680, 720, 760, 810, 790, 750];
+const producing2025 = [520, 500, 540, 570, 600, 630, 670, 650, 620];
+const QPS_VAL = [420.0, 435.0, 448.0, 460.0, 472.0, 485.0, 498.0, 490.0, 476.0];
+const QPS_VOL = [1100.0, 1150.0, 1230.0, 1310.0, 1400.0, 1520.0, 1640.0, 1580.0, 1460.0];
+const QPS_MOM = [null, 3.6, 3.0, 2.7, 2.6, 2.8, 2.7, -1.6, -2.9];
+const VOL_MOM = [null, 4.5, 7.0, 6.5, 6.9, 8.6, 7.9, -3.7, -7.6];
+
+const COLORS = {
+  brand: '#E90345', brandLight: 'rgba(233,3,69,.12)', brandDeep: '#B70235',
+  ink: '#191B38', ink2: '#4A4F7A', muted: '#A8AEC2',
+  gray: '#C5CADD', grayFill: 'rgba(197,202,221,.35)',
+  good: '#11B981', goodFill: 'rgba(17,185,129,.12)',
+  bad: '#E90345', warn: '#F59E0B',
+  cool: '#3B82F6', coolFill: 'rgba(59,130,246,.12)'
+};
+
+/* ────── 工厂函数 ────── */
+const baseLine = (label) => ({
+  type: 'line', label,
+  borderColor: COLORS.brand, backgroundColor: COLORS.brandLight,
+  borderWidth: 2.5, tension: .35, pointRadius: 3, pointHoverRadius: 5,
+  pointBackgroundColor: '#fff', pointBorderColor: COLORS.brand, pointBorderWidth: 2
+});
+const baseBar = (label, color, fill) => ({
+  type: 'bar', label, backgroundColor: color,
+  borderRadius: 4, borderSkipped: false, barPercentage: .7, categoryPercentage: .7
+});
+
+/* ────── Chart 实例（17 个） ────── */
+
+// 1. TTV monthly — 用于 Section 02 Tab 默认显示
+const TTV_CONFIG = {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      Object.assign(baseBar('2025', COLORS.gray, COLORS.grayFill), { data: ttv2025 }),
+      Object.assign(baseBar('2026', COLORS.brand, COLORS.brandLight), { data: ttv2026 })
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 10, boxHeight: 10, padding: 12 } }, tooltip: tooltipStyle },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      y: { grid: gridStyle, ticks: { callback: v => '¥' + v + '万', font: { size: 11 } } }
+    }
+  }
+};
+const BKS_CONFIG = {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      Object.assign(baseBar('2025', COLORS.gray, COLORS.grayFill), { data: bks2025 }),
+      Object.assign(baseBar('2026', COLORS.ink, 'rgba(25,27,56,.15)'), { data: bks2026 })
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: tooltipStyle },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: gridStyle, ticks: { callback: v => v.toLocaleString() } }
+    }
+  }
+};
+new Chart(document.getElementById('c-ttv-month'), TTV_CONFIG);
+
+// 3. Destination Top10（颜色梯度演示）
+const DEST = ['泰国', '日本', '马来西亚', '新加坡', '印度尼西亚', '韩国', '越南', '阿联酋', '沙特阿拉伯', '土耳其'];
+const dest2026 = [3250.0, 2860.0, 1980.0, 1520.0, 1310.0, 1180.0, 980.0, 760.0, 640.0, 510.0];
+new Chart(document.getElementById('c-dest-top10'), {
+  type: 'bar',
+  data: {
+    labels: DEST,
+    datasets: [{
+      data: dest2026,
+      backgroundColor: dest2026.map((v, i) => i < 3 ? COLORS.brand : i < 6 ? '#E96080' : '#F4A3B6'),
+      borderRadius: 4, borderSkipped: false, barPercentage: .75
+    }]
+  },
+  options: {
+    indexAxis: 'x',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: Object.assign({}, tooltipStyle, { callbacks: { label: c => `¥${c.parsed.y}万` } }) },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+      y: { grid: gridStyle, ticks: { callback: v => '¥' + v } }
+    }
+  }
+});
+
+// 4. Region (Section 04)
+const REG = ['东南亚', '东北亚', '中东', '其他'];
+const reg2026 = [9040.0, 4040.0, 1910.0, 2158.0];
+const reg2025 = [6610.0, 3370.0, 900.0, 2267.0];
+new Chart(document.getElementById('c-region'), {
+  data: {
+    labels: REG,
+    datasets: [
+      Object.assign(baseBar('2025', COLORS.gray, COLORS.grayFill), { data: reg2025 }),
+      Object.assign(baseBar('2026', COLORS.brand, COLORS.brandLight), { data: reg2026 })
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: tooltipStyle },
+    scales: { x: { grid: { display: false } }, y: { grid: gridStyle, ticks: { callback: v => '¥' + v + '万' } } }
+  }
+});
+
+// 5. Failure rate (Section 05)
+new Chart(document.getElementById('c-failrate'), {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      { ...baseLine('2026'), data: fail2026, borderColor: COLORS.brand, fill: true, backgroundColor: COLORS.brandLight, tension: .3 },
+      { ...baseLine('2025'), data: fail2025, borderColor: COLORS.gray, borderDash: [4,4] }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: Object.assign({}, tooltipStyle, { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toFixed(2)}%` } }) },
+    scales: { x: { grid: { display: false } }, y: { grid: gridStyle, ticks: { callback: v => v + '%' } } }
+  }
+});
+
+// 6. Accuracy rate (Section 05)
+new Chart(document.getElementById('c-accrate'), {
+  data: {
+    labels: MONTHS,
+    datasets: [{ ...baseLine('2026 准确率'), data: acc2026, borderColor: COLORS.good, backgroundColor: COLORS.goodFill, fill: true }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: Object.assign({}, tooltipStyle, { callbacks: { label: c => `${c.parsed.y.toFixed(2)}%` } }) },
+    scales: { x: { grid: { display: false } }, y: { grid: gridStyle, ticks: { callback: v => v + '%' }, suggestedMin: 88, suggestedMax: 100 } }
+  }
+});
+
+// 7. Dispute BKs (Section 06)
+new Chart(document.getElementById('c-dispute-bks'), {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      Object.assign(baseBar('2025', COLORS.gray, COLORS.grayFill), { data: dBks2025 }),
+      Object.assign(baseBar('2026', COLORS.brand, COLORS.brandLight), { data: dBks2026 })
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: tooltipStyle },
+    scales: { x: { grid: { display: false } }, y: { grid: gridStyle, ticks: { stepSize: 10 } } }
+  }
+});
+
+// 8. Dispute rate (Section 06)
+new Chart(document.getElementById('c-dispute-rate'), {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      { ...baseLine('2026'), data: dRate2026, borderColor: COLORS.brand, fill: true, backgroundColor: COLORS.brandLight, tension: .3 },
+      { ...baseLine('2025'), data: dRate2025, borderColor: COLORS.gray, borderDash: [4,4] }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: Object.assign({}, tooltipStyle, { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toFixed(2)}%` } }) },
+    scales: { x: { grid: { display: false } }, y: { grid: gridStyle, ticks: { callback: v => v + '%' } } }
+  }
+});
+
+// 9. ADR (Section 07)
+new Chart(document.getElementById('c-adr'), {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      { ...baseLine('2025'), data: adr2025, borderColor: COLORS.gray, borderDash: [4,4] },
+      { ...baseLine('2026'), data: adr2026, borderColor: COLORS.brand, fill: true, backgroundColor: COLORS.brandLight }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: Object.assign({}, tooltipStyle, { callbacks: { label: c => `¥${c.parsed.y.toFixed(0)}/间夜` } }) },
+    scales: { x: { grid: { display: false } }, y: { grid: gridStyle, ticks: { callback: v => '¥' + v } } }
+  }
+});
+
+// 10. LOS (Section 07)
+new Chart(document.getElementById('c-los'), {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      { ...baseLine('2025'), data: los2025, borderColor: COLORS.gray, borderDash: [4,4] },
+      { ...baseLine('2026'), data: los2026, borderColor: COLORS.brand, fill: true, backgroundColor: COLORS.brandLight }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: Object.assign({}, tooltipStyle, { callbacks: { label: c => `${c.parsed.y} 间夜` } }) },
+    scales: { x: { grid: { display: false } }, y: { grid: gridStyle } }
+  }
+});
+
+// 11. LT (Section 07)
+new Chart(document.getElementById('c-lt'), {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      { ...baseLine('2025'), data: lt2025, borderColor: COLORS.gray, borderDash: [4,4] },
+      { ...baseLine('2026'), data: lt2026, borderColor: COLORS.brand, fill: true, backgroundColor: COLORS.brandLight }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: Object.assign({}, tooltipStyle, { callbacks: { label: c => `${c.parsed.y.toFixed(1)} 天` } }) },
+    scales: { x: { grid: { display: false } }, y: { grid: gridStyle } }
+  }
+});
+
+// 12. Match + Priced (Section 08)
+new Chart(document.getElementById('c-match-price'), {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      { ...baseLine('匹配成功酒店'), data: match2026, borderColor: COLORS.ink, backgroundColor: 'rgba(25,27,56,.12)', fill: true, tension: .3 },
+      { ...baseLine('有价酒店'), data: priced2026, borderColor: COLORS.brand, fill: false, tension: .3 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: tooltipStyle },
+    scales: { x: { grid: { display: false } }, y: { grid: gridStyle, ticks: { callback: v => (v/1000).toFixed(0) + 'K' } } }
+  }
+});
+
+// 13. Producing (Section 08)
+new Chart(document.getElementById('c-producing'), {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      { ...baseLine('2025'), data: producing2025, borderColor: COLORS.gray, borderDash: [4,4] },
+      { ...baseLine('2026'), data: producing2026, borderColor: COLORS.brand, backgroundColor: COLORS.brandLight, fill: true }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end' }, tooltip: tooltipStyle },
+    scales: { x: { grid: { display: false } }, y: { grid: gridStyle, ticks: { stepSize: 200 } } }
+  }
+});
+
+// 14. QPS + Volume 双轴混合图（Section 09 · 模式 B 演示）
+new Chart(document.getElementById('c-qps-vol'), {
+  data: {
+    labels: MONTHS,
+    datasets: [
+      {
+        type: 'bar', label: '验价请求量（万次/月）',
+        data: QPS_VOL, backgroundColor: COLORS.coolFill, borderColor: COLORS.cool, borderWidth: 1.5,
+        borderRadius: 4, borderSkipped: false, barPercentage: .55, yAxisID: 'y2'
+      },
+      {
+        type: 'line', label: 'QPS (req/s)',
+        data: QPS_VAL, borderColor: COLORS.brand, backgroundColor: COLORS.brandLight,
+        borderWidth: 2.5, tension: .35, pointRadius: 4, pointHoverRadius: 6,
+        pointBackgroundColor: '#fff', pointBorderColor: COLORS.brand, pointBorderWidth: 2,
+        fill: true, yAxisID: 'y1'
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 12, boxHeight: 12, padding: 12 } }, tooltip: tooltipStyle },
+    scales: {
+      x: { grid: { display: false } },
+      y1: { type: 'linear', position: 'left',  grid: { color: '#EDEFF6', drawBorder: false }, ticks: { callback: v => v + ' req/s', color: COLORS.brand }, title: { display: true, text: 'QPS (req/s)', color: COLORS.brand, font: { size: 11, weight: '600' } } },
+      y2: { type: 'linear', position: 'right', grid: { display: false }, ticks: { callback: v => v.toFixed(0) + ' 万', color: COLORS.cool }, title: { display: true, text: '验价请求量（万次/月）', color: COLORS.cool, font: { size: 11, weight: '600' } } }
+    }
+  }
+});
+
+// 15. QPS MoM bars (Section 09)
+new Chart(document.getElementById('c-qps-mom'), {
+  type: 'bar',
+  data: {
+    labels: MONTHS,
+    datasets: [
+      { label: 'QPS 环比', data: QPS_MOM, backgroundColor: QPS_MOM.map(v => v === null ? 'transparent' : v >= 0 ? 'rgba(17,185,129,.7)' : 'rgba(233,3,69,.7)'), borderRadius: 3, borderSkipped: false, barPercentage: .7 },
+      { label: '验价量环比', data: VOL_MOM, backgroundColor: VOL_MOM.map(v => v === null ? 'transparent' : v >= 0 ? 'rgba(59,130,246,.55)' : 'rgba(245,158,11,.7)'), borderRadius: 3, borderSkipped: false, barPercentage: .7 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 10, boxHeight: 10, padding: 12 } }, tooltip: Object.assign({}, tooltipStyle, { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y}%` } }) },
+    scales: { x: { grid: { display: false } }, y: { grid: { color: '#EDEFF6', drawBorder: false }, ticks: { callback: v => v + '%' } } }
+  }
+});
+
+/* ────── Tab 切换 · Section 02 的 TTV / Bookings 联动
+   用 destroy + recreate 模式避免 hidden canvas 的 0×0 初始化坑 ────── */
+const TAB_CONFIGS = {
+  ttv: { canvas: 'c-ttv-month', config: TTV_CONFIG },
+  bks: { canvas: 'c-bks-month', config: BKS_CONFIG }
+};
+function mountChart(key) {
+  const el = document.getElementById(TAB_CONFIGS[key].canvas);
+  const old = Chart.getChart(el);
+  if (old) old.destroy();
+  return new Chart(el, TAB_CONFIGS[key].config);
+}
+document.querySelectorAll('.tabs').forEach(tabsEl => {
+  tabsEl.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.tab;
+      const panel = btn.closest('.panel');
+      tabsEl.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      panel.querySelectorAll('.chart-tab').forEach(div => {
+        const match = div.dataset.tabContent === key;
+        div.style.display = match ? '' : 'none';
+        if (match) mountChart(key);
+      });
+    });
+  });
+});
+</script>
+</body>
+</html>
